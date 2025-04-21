@@ -2,12 +2,16 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 
-from .const import DOMAIN, CONF_OPTIONS_INTERVAL_OF_UPDATE_OF_ANALOG_INPUTS, \
-    CONF_OPTIONS_INTERVAL_OF_UPDATE_OF_COUNTERS, CONF_OPTIONS_INTERVAL_OF_UPDATE_OF_DIGITAL_INPUTS, \
-    CONF_OPTIONS_INTERVAL_OF_UPDATE_OF_RELAYS
+from .const import (
+    DOMAIN,
+    CONF_OPTIONS_INTERVAL_OF_UPDATE_OF_ANALOG_INPUTS,
+    CONF_OPTIONS_INTERVAL_OF_UPDATE_OF_COUNTERS,
+    CONF_OPTIONS_INTERVAL_OF_UPDATE_OF_DIGITAL_INPUTS,
+    CONF_OPTIONS_INTERVAL_OF_UPDATE_OF_RELAYS,
+)
 from .board import IPX800v3, IPX800v3View
 
-PLATFORMS = [Platform.BINARY_SENSOR, Platform.SENSOR, Platform.SWITCH]
+PLATFORMS = [Platform.BINARY_SENSOR, Platform.BUTTON, Platform.SENSOR, Platform.SWITCH]
 
 
 async def async_migrate_entry(hass, config_entry: ConfigEntry):
@@ -16,12 +20,17 @@ async def async_migrate_entry(hass, config_entry: ConfigEntry):
         return False
 
     if config_entry.version == 1 and config_entry.minor_version == 1:
-        new_options = {**config_entry.options, CONF_OPTIONS_INTERVAL_OF_UPDATE_OF_ANALOG_INPUTS: 10,
-                       CONF_OPTIONS_INTERVAL_OF_UPDATE_OF_COUNTERS: 10,
-                       CONF_OPTIONS_INTERVAL_OF_UPDATE_OF_DIGITAL_INPUTS: 10,
-                       CONF_OPTIONS_INTERVAL_OF_UPDATE_OF_RELAYS: 10}
+        new_options = {
+            **config_entry.options,
+            CONF_OPTIONS_INTERVAL_OF_UPDATE_OF_ANALOG_INPUTS: 10,
+            CONF_OPTIONS_INTERVAL_OF_UPDATE_OF_COUNTERS: 10,
+            CONF_OPTIONS_INTERVAL_OF_UPDATE_OF_DIGITAL_INPUTS: 10,
+            CONF_OPTIONS_INTERVAL_OF_UPDATE_OF_RELAYS: 10,
+        }
 
-        hass.config_entries.async_update_entry(config_entry, options=new_options, minor_version=2, version=1)
+        hass.config_entries.async_update_entry(
+            config_entry, options=new_options, minor_version=2, version=1
+        )
 
     return True
 
@@ -37,14 +46,13 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
         username=config_entry.data["username"],
         password=config_entry.data["password"],
         mac=config_entry.data["mac"],
-        firmware_version=config_entry.data["version"]
+        firmware_version=config_entry.data["version"],
     )
 
     hass.data[DOMAIN][config_entry.entry_id] = board
 
     await hass.config_entries.async_forward_entry_setups(
-        entry=config_entry,
-        platforms=PLATFORMS
+        entry=config_entry, platforms=PLATFORMS
     )
 
     await board.run_coordinators()
