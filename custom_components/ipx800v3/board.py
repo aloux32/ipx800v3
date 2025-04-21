@@ -10,23 +10,38 @@ from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.http import HomeAssistantView
 from .api import Api
 from .binary_sensor import BinarySensor
-from .const import DOMAIN, NUMBER_OF_COUNTERS, NUMBER_OF_DIGITAL_INPUTS, NUMBER_OF_RELAYS, \
-    NUMBER_OF_ANALOG_INPUTS, CONF_OPTIONS_INTERVAL_OF_UPDATE_OF_RELAYS, \
-    CONF_OPTIONS_INTERVAL_OF_UPDATE_OF_ANALOG_INPUTS, CONF_OPTIONS_INTERVAL_OF_UPDATE_OF_DIGITAL_INPUTS, \
-    CONF_OPTIONS_INTERVAL_OF_UPDATE_OF_COUNTERS
-from .coordinator import RelayCoordinator, AnalogInputCoordinator, DigitalInputCoordinator, CounterCoordinator
+from .const import (
+    DOMAIN,
+    NUMBER_OF_COUNTERS,
+    NUMBER_OF_DIGITAL_INPUTS,
+    NUMBER_OF_RELAYS,
+    NUMBER_OF_ANALOG_INPUTS,
+    CONF_OPTIONS_INTERVAL_OF_UPDATE_OF_RELAYS,
+    CONF_OPTIONS_INTERVAL_OF_UPDATE_OF_ANALOG_INPUTS,
+    CONF_OPTIONS_INTERVAL_OF_UPDATE_OF_DIGITAL_INPUTS,
+    CONF_OPTIONS_INTERVAL_OF_UPDATE_OF_COUNTERS,
+)
+from .coordinator import (
+    RelayCoordinator,
+    AnalogInputCoordinator,
+    DigitalInputCoordinator,
+    CounterCoordinator,
+)
 from .sensor import AnalogInput, Counter
 from .switch import Relay
+from .button import Button
 
 
 class IPX800v3:
     def __init__(
-            self,
-            hass: HomeAssistant,
-            options: MappingProxyType[str, Any],
-            host: str, username: str|None,
-            password: str|None, mac: str|None,
-            firmware_version: str|None
+        self,
+        hass: HomeAssistant,
+        options: MappingProxyType[str, Any],
+        host: str,
+        username: str | None,
+        password: str | None,
+        mac: str | None,
+        firmware_version: str | None,
     ):
         self._hass = hass
         self._host = host
@@ -41,26 +56,50 @@ class IPX800v3:
             manufacturer="GCE Electronics",
             sw_version=self._firmware_version,
             serial_number=self._mac,
-            identifiers={
-                (DOMAIN, self._mac)
-            }
+            identifiers={(DOMAIN, self._mac)},
         )
 
         self._api = Api(
-            host=self._host,
-            username=self._username,
-            password=self._password
+            host=self._host, username=self._username, password=self._password
         )
 
-        self._analog_input_coordinator = AnalogInputCoordinator(self._hass, self._api, options[CONF_OPTIONS_INTERVAL_OF_UPDATE_OF_ANALOG_INPUTS])
-        self._counter_coordinator = CounterCoordinator(self._hass, self._api, options[CONF_OPTIONS_INTERVAL_OF_UPDATE_OF_COUNTERS])
-        self._digital_input_coordinator = DigitalInputCoordinator(self._hass, self._api, options[CONF_OPTIONS_INTERVAL_OF_UPDATE_OF_DIGITAL_INPUTS])
-        self._relay_coordinator = RelayCoordinator(self._hass, self._api, options[CONF_OPTIONS_INTERVAL_OF_UPDATE_OF_RELAYS])
+        self._analog_input_coordinator = AnalogInputCoordinator(
+            self._hass,
+            self._api,
+            options[CONF_OPTIONS_INTERVAL_OF_UPDATE_OF_ANALOG_INPUTS],
+        )
+        self._counter_coordinator = CounterCoordinator(
+            self._hass, self._api, options[CONF_OPTIONS_INTERVAL_OF_UPDATE_OF_COUNTERS]
+        )
+        self._digital_input_coordinator = DigitalInputCoordinator(
+            self._hass,
+            self._api,
+            options[CONF_OPTIONS_INTERVAL_OF_UPDATE_OF_DIGITAL_INPUTS],
+        )
+        self._relay_coordinator = RelayCoordinator(
+            self._hass, self._api, options[CONF_OPTIONS_INTERVAL_OF_UPDATE_OF_RELAYS]
+        )
 
-        self._analog_inputs = [AnalogInput(self._analog_input_coordinator, i, self._device) for i in range(1, NUMBER_OF_ANALOG_INPUTS + 1)]
-        self._counters = [Counter(self._counter_coordinator, i, self._device) for i in range(1, NUMBER_OF_COUNTERS + 1)]
-        self._digital_inputs = [BinarySensor(self._digital_input_coordinator, i, self._device) for i in range(1, NUMBER_OF_DIGITAL_INPUTS + 1)]
-        self._relays = [Relay(self._relay_coordinator, i, self._device, self._api) for i in range(1, NUMBER_OF_RELAYS + 1)]
+        self._analog_inputs = [
+            AnalogInput(self._analog_input_coordinator, i, self._device)
+            for i in range(1, NUMBER_OF_ANALOG_INPUTS + 1)
+        ]
+        self._counters = [
+            Counter(self._counter_coordinator, i, self._device)
+            for i in range(1, NUMBER_OF_COUNTERS + 1)
+        ]
+        self._digital_inputs = [
+            BinarySensor(self._digital_input_coordinator, i, self._device)
+            for i in range(1, NUMBER_OF_DIGITAL_INPUTS + 1)
+        ]
+        self._relays = [
+            Relay(self._relay_coordinator, i, self._device, self._api)
+            for i in range(1, NUMBER_OF_RELAYS + 1)
+        ]
+        self._buttons = [
+            Button(self._relay_coordinator, i, self._device, self._api)
+            for i in range(1, NUMBER_OF_RELAYS + 1)
+        ]
 
     async def run_coordinators(self):
         await self._analog_input_coordinator.async_config_entry_first_refresh()
@@ -79,6 +118,9 @@ class IPX800v3:
 
     def get_counters(self) -> list[Counter]:
         return self._counters
+
+    def get_buttons(self) -> list[Button]:
+        return self._buttons
 
     def _get_url(self):
         return "http://" + self._host
@@ -134,7 +176,9 @@ class IPX800v3View(HomeAssistantView):
         self._password = password
         self._board = board
 
-        mac_encoded = base64.b64encode(self._board.get_mac().encode("utf-8")).decode("utf-8")
+        mac_encoded = base64.b64encode(self._board.get_mac().encode("utf-8")).decode(
+            "utf-8"
+        )
         self.url = "/api/ipx800v3/" + mac_encoded + "/{type}/{id}/{state}"
         self.name = "api:ipx800v3:" + mac_encoded
 
