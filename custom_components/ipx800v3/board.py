@@ -29,7 +29,7 @@ from .coordinator import (
 )
 from .sensor import AnalogInput, Counter
 from .switch import Relay
-from .button import Button
+from .button import Button, RefreshButton
 
 
 class IPX800v3:
@@ -100,6 +100,15 @@ class IPX800v3:
             Button(self._relay_coordinator, i, self._device, self._api)
             for i in range(1, NUMBER_OF_RELAYS + 1)
         ]
+        self._refresh_button = RefreshButton(
+            coordinators=[
+                self._relay_coordinator,
+                self._digital_input_coordinator,
+                self._analog_input_coordinator,
+                self._counter_coordinator,
+            ],
+            device=self._device,
+        )
 
     async def run_coordinators(self):
         await self._analog_input_coordinator.async_config_entry_first_refresh()
@@ -122,11 +131,17 @@ class IPX800v3:
     def get_buttons(self) -> list[Button]:
         return self._buttons
 
+    def get_refresh_button(self) -> RefreshButton:
+        return self._refresh_button
+
     def _get_url(self):
         return "http://" + self._host
 
     def get_mac(self):
         return self._mac
+
+    async def close(self):
+        await self._api.close()
 
 
 def check_api_auth(request: HomeAssistantRequest, username: str, password: str) -> bool:
