@@ -7,9 +7,14 @@ class Api:
         self._host = host
         self._username = username
         self._password = password
+        self._auth = httpx.BasicAuth(username=self._username, password=self._password)
+        self._client = httpx.AsyncClient(auth=self._auth)
 
     async def call_api(self, path: str = "") -> Response:
-        auth = httpx.BasicAuth(username=self._username, password=self._password)
+        return await self._client.get(
+            "http://" + self._host + "/" + path,
+            timeout=10.0,
+        )
 
-        async with httpx.AsyncClient() as client:
-            return await client.get("http://" + self._host + "/" + path, timeout=60.0, auth=auth)
+    async def close(self):
+        await self._client.aclose()
