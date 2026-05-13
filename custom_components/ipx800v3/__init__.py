@@ -61,6 +61,9 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
 
     config_entry.async_on_unload(config_entry.add_update_listener(update_listener))
 
+    # Fermeture propre du client HTTP à l'unload
+    config_entry.async_on_unload(board.close)
+
     return True
 
 
